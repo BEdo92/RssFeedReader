@@ -1,0 +1,26 @@
+[
+  {
+    "Id": 1,
+    "Name": "BBC News",
+    "Url": "https://feeds.bbci.co.uk/news/rss.xml",
+    "Category": "General"
+  },
+  {
+    "Id": 2,
+    "Name": "CNN",
+    "Url": "https://rss.cnn.com/rss/edition.rss",
+    "Category": "General"
+  },
+  {
+    "Id": 3,
+    "Name": "TechCrunch",
+    "Url": "https://feeds.feedburner.com/TechCrunch/",
+    "Category": "Technology"
+  },
+  {
+    "Id": 4,
+    "Name": "Ars Technica",
+    "Url": "https://feeds.arstechnica.com/arstechnica/index/",
+    "Category": "Technology"
+  }
+]
