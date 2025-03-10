@@ -14,7 +14,7 @@ public class NewsController(FeedContext context) : ControllerBase
         return Ok(await context.News.ToListAsync());
     }
 
-    [HttpGet]
+    [HttpGet("filter")]
     public async Task<IActionResult> GetNews(int page = 1, int pageSize = 10)
     {
         return Ok(await context.News

@@ -1,19 +1,15 @@
 using Microsoft.EntityFrameworkCore;
 using RssFeedReader.Data;
-using RssFeedReader.Models;
+using RssFeedReader.Middleware;
 using RssFeedReader.Services;
-using System.Text.Json;
 
 
 var builder = WebApplication.CreateBuilder(args);
-
-// Add services to the container.
 
 builder.Services.AddDbContext<FeedContext>(options =>
             options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddHostedService<RssFeedService>();
@@ -29,16 +25,16 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseMiddleware<ExceptionMiddleware>();
+
+app.UseStaticFiles();
+
 app.UseAuthorization();
 
 app.MapControllers();
 
-string json = File.ReadAllText("feedSources.json");
-List<FeedSource>? feeds = JsonSerializer.Deserialize<List<FeedSource>>(json);
-
 using IServiceScope scope = app.Services.CreateScope();
 IServiceProvider services = scope.ServiceProvider;
-
 try
 {
     FeedContext context = services.GetRequiredService<FeedContext>();
