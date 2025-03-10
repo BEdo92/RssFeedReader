@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using RssFeedReader.Data;
+using RssFeedReader.Helpers;
+using RssFeedReader.Models;
 
 namespace RssFeedReader.Controllers;
 
@@ -9,18 +10,10 @@ namespace RssFeedReader.Controllers;
 public class NewsController(FeedContext context) : ControllerBase
 {
     [HttpGet]
-    public async Task<IActionResult> GetNews()
-    {
-        return Ok(await context.News.ToListAsync());
-    }
-
-    [HttpGet("filter")]
     public async Task<IActionResult> GetNews(int page = 1, int pageSize = 10)
     {
-        return Ok(await context.News
-            .OrderByDescending(n => n.PublishDate)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync());
+        var news = context.News.AsQueryable();
+        var pagedNews = await PagedList<News>.CreateAsync(news, page, pageSize);
+        return Ok(pagedNews);
     }
 }

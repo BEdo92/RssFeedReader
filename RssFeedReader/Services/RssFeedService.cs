@@ -35,22 +35,26 @@ public class RssFeedService : BackgroundService
                 using IServiceScope scope = scopeFactory.CreateScope();
 
                 FeedContext dbContext = scope.ServiceProvider.GetRequiredService<FeedContext>();
-                var feedSources = await dbContext.FeedSources.ToListAsync(stoppingToken);
+                List<FeedSource> feedSources = await dbContext.FeedSources.ToListAsync(stoppingToken);
 
                 foreach (FeedSource? feedSource in feedSources)
                 {
-                    var lastNews = await dbContext.News
+                    News? lastNews = await dbContext.News
                         .Where(n => n.FeedSourceId == feedSource.Id)
                         .OrderByDescending(n => n.PublishDate)
                         .FirstOrDefaultAsync(stoppingToken);
 
-                    var request = new HttpRequestMessage(HttpMethod.Get, feedSource.Url);
-                    if (lastNews != null)
+                    HttpRequestMessage request = new(HttpMethod.Get, feedSource.Url);
+                    if (lastNews is not null)
                     {
                         request.Headers.IfModifiedSince = lastNews.PublishDate;
                     }
+                    else
+                    {
+                        request.Headers.IfModifiedSince = DateTime.Now.AddMinutes(-10);
+                    }
 
-                    var response = await httpClient.SendAsync(request, stoppingToken);
+                    HttpResponseMessage response = await httpClient.SendAsync(request, stoppingToken);
                     if (response.StatusCode == System.Net.HttpStatusCode.NotModified)
                     {
                         continue;
@@ -62,20 +66,20 @@ public class RssFeedService : BackgroundService
                     using (XmlReader reader = XmlReader.Create(stream))
                     {
                         SyndicationFeed feed = SyndicationFeed.Load(reader);
-                        foreach (SyndicationItem item in feed.Items)
+                        foreach (SyndicationItem feedItem in feed.Items)
                         {
-                            string author = item.Authors.Count > 0 ? item.Authors[0].Name : string.Empty;
-                            string url = item.Links.Count > 0 ? item.Links[0].Uri.ToString() : string.Empty;
+                            string author = feedItem.Authors.Count > 0 ? feedItem.Authors[0].Name : string.Empty;
+                            string url = feedItem.Links.Count > 0 ? feedItem.Links[0].Uri.ToString() : string.Empty;
                             dbContext.News.Add(new News
                             {
-                                Title = item.Title.Text,
-                                Description = item.Summary?.Text,
-                                PublishDate = item.PublishDate.DateTime,
+                                Title = feedItem.Title.Text,
+                                Description = feedItem.Summary?.Text,
+                                PublishDate = feedItem.PublishDate.DateTime,
                                 Author = author,
                                 Url = url,
-                                Categories = string.Join(", ", item.Categories.Select(c => c.Name)),
-                                Contributors = string.Join(", ", item.Contributors.Select(c => c.Name)),
-                                Copyright = item.Copyright?.Text,
+                                Categories = string.Join(", ", feedItem.Categories.Select(c => c.Name)),
+                                Contributors = string.Join(", ", feedItem.Contributors.Select(c => c.Name)),
+                                Copyright = feedItem.Copyright?.Text,
                                 FeedSourceId = feedSource.Id
                             });
                         }

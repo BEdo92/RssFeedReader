@@ -4,15 +4,22 @@
 
     function fetchFeeds(page) {
         $.ajax({
-            url: `/api/news/filter?page=${page}&pageSize=${pageSize}`,
+            url: `/api/news?page=${page}&pageSize=${pageSize}`,
             type: 'GET',
             success: function (data) {
-                displayFeeds(data.items);
-                updatePagination(data.totalPages, page);
+                console.log(data.items);
+                console.log(data.totalPages);
+                if (data && Array.isArray(data.items)) {
+                    displayFeeds(data.items);
+                    updatePagination(data.totalPages, page);
+                } else {
+                    console.error('API response does not contain valid items:', data);
+                    $('#feed-container').html('<p class="alert alert-danger">Error: No items found.</p>');
+                }
             },
             error: function (error) {
                 console.error('Error fetching feeds:', error);
-                $('#feed-container').html('<p>Error loading feeds.</p>');
+                $('#feed-container').html('<p class="alert alert-danger">Error loading feeds.</p>');
             }
         });
     }
@@ -21,36 +28,37 @@
         let html = '';
         feeds.forEach(function (feed) {
             html += `
-                <div class="feed-item">
-                    <h3><a href="${feed.url}" target="_blank">${feed.title}</a></h3>
-                    ${new Date(feed.publishDate).toLocaleString()}
-                    ${feed.author}<br>
-                    ${feed.description}
+                <div class="feed-item card mb-3">
+                    <div class="card-body">
+                        <h3 class="card-title"><a href="${feed.url}" target="_blank">${feed.title}</a></h3>
+                        <h6 class="card-subtitle mb-2 text-muted">${new Date(feed.publishDate).toLocaleString()}</h6>
+                        <p class="card-text">${feed.author}</p>
+                        <p class="card-text">${feed.description}</p>
+                    </div>
                 </div>
             `;
         });
         $('#feed-container').html(html);
     }
 
-    function updatePagination(totalPages, currentPage) {
+    function updatePagination(totalPages, page) {
+        console.log(totalPages)
         let paginationHtml = '';
 
-        if (currentPage > 1) {
-            paginationHtml += `<button id="prev-page" class="btn btn-primary">Previous</button>`;
+        if (page > 1) {
+            paginationHtml += `<button id="prev-page" class="btn btn-primary" data-page="${page - 1}">Previous</button>`;
         }
 
-        if (currentPage < totalPages) {
-            paginationHtml += `<button id="next-page" class="btn btn-primary">Next</button>`;
+        if (page < totalPages) {
+            paginationHtml += `<button id="next-page" class="btn btn-primary" data-page="${page + 1}">Next</button>`;
         }
 
         $('#pagination-controls').html(paginationHtml);
 
-        $('#prev-page').click(function () {
-            fetchFeeds(currentPage - 1);
-        });
-
-        $('#next-page').click(function () {
-            fetchFeeds(currentPage + 1);
+        // Event delegation
+        $('#pagination-controls').off('click', '#prev-page, #next-page').on('click', '#prev-page, #next-page', function () {
+            const newPage = parseInt($(this).data('page'));
+            fetchFeeds(newPage);
         });
     }
 
