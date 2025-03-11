@@ -17,12 +17,13 @@ public class NewsRepository(FeedContext context) : INewsRepository
 
         if (!string.IsNullOrEmpty(feedParams.Author))
         {
-            news = news.Where(n => n.Author == feedParams.Author);
+
+            news = news.Where(n => n.Author != null && n.Author.Contains(feedParams.Author));
         }
 
-        if (!string.IsNullOrEmpty(feedParams.Categories))
+        if (!string.IsNullOrEmpty(feedParams.Title))
         {
-            news = news.Where(n => n.Categories != null && n.Categories.Contains(feedParams.Categories));
+            news = news.Where(n => n.Title != null && n.Title.Contains(feedParams.Title));
         }
 
         if (!string.IsNullOrEmpty(feedParams.FeedSource))

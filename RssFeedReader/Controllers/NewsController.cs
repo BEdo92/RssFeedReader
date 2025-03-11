@@ -16,19 +16,19 @@ public class NewsController(INewsRepository repository, IMapper mapper) : Contro
         int page = 1,
         int pageSize = 10,
         string? author = null,
-        string? category = null,
+        string? title = null,
         string? feedSource = null,
-        DateTime? fromDate = null,
-        DateTime? toDate = null)
+        DateTime? dateFrom = null,
+        DateTime? dateTo = null)
 
     {
         IQueryable<News> news = repository.GetNews(new FeedParams
         {
             Author = author,
-            Categories = category,
+            Title = title,
             FeedSource = feedSource,
-            FromDate = fromDate,
-            ToDate = toDate
+            FromDate = dateFrom,
+            ToDate = dateTo
         });
 
         var pagedNews = await PagedList<News>.CreateAsync(news, page, pageSize);
