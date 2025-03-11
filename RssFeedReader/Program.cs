@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using RssFeedReader.Data;
+using RssFeedReader.Interfaces;
 using RssFeedReader.Middleware;
+using RssFeedReader.Repositories;
 using RssFeedReader.Services;
 
 
@@ -14,6 +16,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddHostedService<RssFeedService>();
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+builder.Services.AddScoped<INewsRepository, NewsRepository>();
 
 var app = builder.Build();
 
