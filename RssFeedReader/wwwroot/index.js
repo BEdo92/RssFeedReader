@@ -50,15 +50,36 @@
 
     function showPopup(feed) {
         $('#feedModalLabel').text(feed.title);
-        $('#modal-published').text('Published: ' + new Date(feed.publishDate).toLocaleString());
+        let date = ''
+        try {
+            date = new Date(feed.publishDate).toLocaleString();
+        } catch (error) {
+            console.error('Error parsing date:', error);
+            date = 'Invalid date';
+        }
+
+        $('#modal-published').text('Published: ' + date);
+
         $('#modal-source').text(feed.feedSource);
         $('#modal-author').text(feed.author);
         $('#modal-categories').text(feed.categories || '');
 
-        // NOTE: Some feeds contain 'p' tags in the description, remove them.
-        let cleanedDescription = removePTags(feed.description);
-        $('#modal-description').text(cleanedDescription || '');
-        $('#modal-content').text(feed.content || '');
+        // NOTE: Some RSS feeds contain HTML, while others contain plain text.
+        // Sanitize the content if it contains HTML.
+        if (feed.description && containsHtml(feed.description)) {
+            const sanitizedContent = DOMPurify.sanitize(feed.description);
+            $('#modal-description').html(sanitizedContent);
+        } else {
+            $('#modal-description').text(feed.description);
+        }
+
+        if (feed.content && containsHtml(feed.content)) {
+            const sanitizedContent = DOMPurify.sanitize(feed.content);
+            $('#modal-content').html(sanitizedContent);
+        } else {
+            $('#modal-content').text(feed.content);
+        }
+
         $('#modal-article-link').attr('href', feed.url);
 
         if (feed.imageUrl) {
@@ -153,7 +174,7 @@
 
         $('#filter-controls').html(filterHtml);
 
-        // Fetch sources for the dropdown
+        // NOTE: Fetch the feed sources for the dropdown.
         $.ajax({
             url: '/api/sources',
             type: 'GET',
@@ -173,9 +194,9 @@
         });
 
         $('#filter-form').on('submit', function (e) {
-            validateDates(e); // Call validation function
-            if (e.isDefaultPrevented()) {
-                return; // Stop form submission if validation failed
+            if (!validateDates(e)) {
+                // NOTE: Stop form submission if validation failed.
+                return; 
             }
 
             e.preventDefault();
@@ -184,7 +205,7 @@
         });
 
         $('#dateFrom, #dateTo').on('change', function () {
-            validateDates(); // Validate on change
+            validateDates(); // NOTE: Validate on change.
         });
 
         $('#clear-filters').click(function () {
@@ -194,13 +215,6 @@
             console.log(pageSize)
             fetchFeeds(currentPage, getFilters());
         })
-    }
-
-    function removePTags(description) {
-        if (!description) {
-            return ""; // Handle null or undefined descriptions
-        }
-        return description.replace(/<p>|<\/p>/g, '');
     }
 
     function validateDates(e) {
@@ -214,17 +228,41 @@
 
             if (dateFrom > dateTo) {
                 errorMessage.text('Date from cannot be later than date to!').show();
-                alert('Date from cannot be later than date to!');
                 if (e) {
                     e.preventDefault();
                 }
+                return false;
             }
         }
         errorMessage.hide();
+        return true;
     }
 
+    function containsHtml(text) {
+        return /<(?!\s*\/?\s*(?:area|br|col|embed|hr|img|p|input|link|meta|param)\b)[^>]+>/.test(text);
+    }
+
+    // NOTE: Content of the button is 'Filter' by default and 'Collapse' when toggled to avoid confusion.
     $('#filter-button').click(function () {
         $('#filter-controls').toggle();
+        if ($('#filter-controls').is(':visible')) {
+            $(this).text('Collapse');
+        } else {
+            $(this).text('Filter');
+        }
+    });
+
+    // NOTE: This is a workaround to prevent the modal from showing the previous feed content.
+    $('#feedModal').on('hidden.bs.modal', function () {
+        $('#feedModalLabel').text('');
+        $('#modal-published').text('');
+        $('#modal-source').text('');
+        $('#modal-author').text('');
+        $('#modal-categories').text('');
+        $('#modal-description').text('');
+        $('#modal-content').text('');
+        $('#modal-article-link').attr('href', '');
+        $('#modal-image').attr('src', '');
     });
 
     updateFilter();
