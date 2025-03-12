@@ -63,12 +63,33 @@
         $('.feed-item').click(function () {
             const feed = $(this).data('feed');
             increaseViewCount(feed.id);
+            console.log('Feed:', feed);
+
             showPopup(feed);
         });
     }
 
     function showPopup(feed) {
-        $('#feedModalLabel').text(feed.title);
+        if (!feed) {
+            console.error('Feed is null or undefined:', feed);
+            return;
+        }
+
+        // NOTE: In come rare sporadic cases, the stringified object contains double quotes.
+        // In most cases, it looks like: {id: 2, title : "Title"}, while in problematic cases: {"id": "2", "title": "Title", ...}
+        // However, I send the data from the server the same way and even in Postman, it looks the same in case of problematic cases and most cases.
+
+        // Unterminated string caught at line...
+        //if (typeof feed === 'string') {
+        //    feed = JSON.parse(feed);
+        //}
+
+        if (!feed.title) {
+            $('#feedModalLabel').text('Invalid title.');
+        } else {
+            $('#feedModalLabel').text(feed.title);
+        }
+
         let date = ''
         try {
             date = new Date(feed.publishDate).toLocaleString();
@@ -220,7 +241,7 @@
         $('#filter-form').on('submit', function (e) {
             if (!validateDates(e)) {
                 // NOTE: Stop form submission if validation failed.
-                return; 
+                return;
             }
 
             e.preventDefault();

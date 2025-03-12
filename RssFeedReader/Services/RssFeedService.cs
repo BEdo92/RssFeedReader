@@ -20,7 +20,7 @@ public class RssFeedService : BackgroundService
         // TODO: Remove this line in production!!
         HttpClientHandler handler = new()
         {
-            ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+            //ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
         };
         httpClient = new HttpClient(handler);
     }
@@ -40,34 +40,41 @@ public class RssFeedService : BackgroundService
                 foreach (FeedSource? feedSource in feedSources)
                 {
                     HttpResponseMessage response;
-                    if (!await dbContext.News.AnyAsync(stoppingToken))
+                    try
                     {
-                        var request = new HttpRequestMessage(HttpMethod.Get, feedSource.Url);
-                        // NOTE: This is not the best way to handle the If-Modified-Since header, as RSS Servers may not support
-                        // it or they may use the date of the modification of the XML file, not the date of the last news news.
-                        request.Headers.IfModifiedSince = DateTime.Now.AddDays(-7).ToUniversalTime();
-                        response = await httpClient.SendAsync(request, stoppingToken);
+                        if (!await dbContext.News.AnyAsync(stoppingToken))
+                        {
+                            var request = new HttpRequestMessage(HttpMethod.Get, feedSource.Url);
+                            // NOTE: This is not the best way to handle the If-Modified-Since header, as RSS Servers may not support
+                            // it or they may use the date of the modification of the XML file, not the date of the last news news.
+                            request.Headers.IfModifiedSince = DateTime.Now.AddDays(-7).ToUniversalTime();
+                            response = await httpClient.SendAsync(request, stoppingToken);
+
+                            if (response.StatusCode == System.Net.HttpStatusCode.NotModified)
+                            {
+                                logger.LogInformation("No new feeds found for {FeedSourceName}.", feedSource.Name);
+                                continue;
+                            }
+
+                            response.EnsureSuccessStatusCode();
+
+                            await ProcessFeedAsync(dbContext, feedSource, response, stoppingToken);
+                        }
+                        else
+                        {
+                            response = await httpClient.GetAsync(feedSource.Url, stoppingToken);
+                        }
                     }
-                    else
+                    catch (Exception e)
                     {
-                        response = await httpClient.GetAsync(feedSource.Url, stoppingToken);
+                        logger.LogError("Error while sending the request for feed source: {feedSource}.", feedSource);
                     }
-
-                    if (response.StatusCode == System.Net.HttpStatusCode.NotModified)
-                    {
-                        logger.LogInformation("No new feeds found for {FeedSourceName}.", feedSource.Name);
-                        continue;
-                    }
-
-                    response.EnsureSuccessStatusCode();
-
-                    await ProcessFeedAsync(dbContext, feedSource, response, stoppingToken);
                 }
             }
             catch (Exception ex)
             {
                 // NOTE: Some RSS feeds fail sporadically. They overall work, but sometimes fail for some reason.
-                logger.LogError(ex, "Error occurred while fetching RSS feeds.");
+                logger.LogError(ex, "Error occurred while fetching and processing RSS feeds at {hour}:{minute}.", DateTime.Now.Hour, DateTime.Now.Minute);
             }
 
             await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
