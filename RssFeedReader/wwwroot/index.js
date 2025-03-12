@@ -114,7 +114,6 @@
     }
 
     function updatePagination(totalPages, page) {
-        console.log(totalPages)
         let paginationHtml = '';
 
         if (page > 1) {
@@ -155,7 +154,6 @@
                 filters[name] = value;
             }
         });
-        console.log('filters:', filters);
         return filters;
     }
 
@@ -238,7 +236,6 @@
             pageSize = parseInt($('#page-size').val());
             currentPage = 1;
             $('#filter-form')[0].reset();
-            console.log(pageSize)
             fetchFeeds(currentPage, getFilters());
         })
     }
@@ -304,8 +301,10 @@
         const password = $('#password').val();
         const confirmPassword = $('#confirmPassword').val();
         if (password !== confirmPassword) {
-            alert('Passwords do not match!');
+            $('#pw-error-message').text('Passwords do not match!').show();
             return;
+        } else {
+            $('#pw-error-message').hide();
         }
         $.ajax({
             url: '/api/account/register',
@@ -316,7 +315,6 @@
                 password: password
             }),
             success: function (data) {
-                console.log('User registered:', data);
                 alert('User registered successfully!');
                 localStorage.setItem('jwtToken', data.token);
                 location.reload();
@@ -341,7 +339,6 @@
                 password: password
             }),
             success: function (data) {
-                console.log('User logged in:', data);
                 localStorage.setItem('jwtToken', data.token);
                 location.reload();
                 $('#logout-button').show();
@@ -351,13 +348,6 @@
                 alert('Error logging in user!');
             }
         });
-    }
-
-    function removePTags(description) {
-        if (!description) {
-            return ""; // Handle null or undefined descriptions
-        }
-        return description.replace(/<p>|<\/p>/g, '');
     }
 
     function validateDates(e) {
