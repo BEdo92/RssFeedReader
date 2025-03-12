@@ -62,6 +62,7 @@
 
         $('.feed-item').click(function () {
             const feed = $(this).data('feed');
+            increaseViewCount(feed.id);
             showPopup(feed);
         });
     }
@@ -72,6 +73,9 @@
         $('#modal-source').text(feed.feedSource);
         $('#modal-author').text(feed.author);
         $('#modal-categories').text(feed.categories || '');
+        if (feed.viewCount) {
+            $('#modal-views').text('View(s): ' + feed.viewCount);
+        }
 
         // NOTE: Some feeds contain 'p' tags in the description, remove them.
         let cleanedDescription = removePTags(feed.description);
@@ -355,7 +359,22 @@
         errorMessage.hide();
     }
 
-    // NOTE: Event listeners to hide or show the base elements of the page.
+    function increaseViewCount(feedId) {
+        const token = localStorage.getItem('jwtToken');
+        $.ajax({
+            url: `/api/statistics/${feedId}`,
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            type: 'POST',
+            success: function () {
+                console.log('View count increased for feed:', feedId);
+            },
+            error: function (error) {
+                console.error('Error increasing view count:', error);
+            }
+        });
+    }
 
     $('#filter-button').click(function () {
         $('#filter-controls').toggle();

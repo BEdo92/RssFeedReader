@@ -17,4 +17,5 @@ public class NewsDTO
     public string? ImageUrl { get; set; }
     public string? Language { get; set; }
     public DateTime? LastUpdatedTime { get; set; }
+    public int ViewCount { get; set; }
 }

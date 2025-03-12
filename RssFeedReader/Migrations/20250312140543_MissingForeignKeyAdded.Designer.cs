@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RssFeedReader.Data;
 
@@ -11,9 +12,11 @@ using RssFeedReader.Data;
 namespace RssFeedReader.Migrations
 {
     [DbContext(typeof(FeedContext))]
-    partial class FeedContextModelSnapshot : ModelSnapshot
+    [Migration("20250312140543_MissingForeignKeyAdded")]
+    partial class MissingForeignKeyAdded
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

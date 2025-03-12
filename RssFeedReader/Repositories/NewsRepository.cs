@@ -14,6 +14,7 @@ public class NewsRepository(FeedContext context) : INewsRepository
     {
         var news = context.News.OrderByDescending(x => x.PublishDate)
                     .Include(x => x.FeedSource)
+                    .Include(x => x.Statistics)
                     .AsNoTracking()
                     .AsQueryable();
 
