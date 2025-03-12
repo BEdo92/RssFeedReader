@@ -105,7 +105,7 @@ public class RssFeedService : BackgroundService
                     ImageUrl = feedItem.Links.FirstOrDefault(l => l.MediaType == "image/jpeg" || l.MediaType == "image/png")?.Uri.ToString(),
                 });
 
-                logger.LogInformation("New article added: {Title}", feedItem.Title.Text);
+                logger.LogDebug("New article added: {Title}", feedItem.Title.Text);
             }
         }
 
@@ -119,7 +119,7 @@ public class RssFeedService : BackgroundService
         {
             if (await dbContext.News.AnyAsync(n => n.Guid == guid, stoppingToken))
             {
-                logger.LogInformation("The article with guid {guid} already exists in the database.", guid);
+                logger.LogDebug("The article with guid {guid} already exists in the database.", guid);
                 return true;
             }
         }
@@ -127,7 +127,7 @@ public class RssFeedService : BackgroundService
         {
             if (await dbContext.News.AnyAsync(n => n.Title == feedItem.Title.Text && n.PublishDate == feedItem.PublishDate.DateTime, stoppingToken))
             {
-                logger.LogInformation("The article with title {title} and publish date {publishdate} exists in the database.", feedItem.Title.Text, feedItem.PublishDate.DateTime);
+                logger.LogDebug("The article with title {title} and publish date {publishdate} exists in the database.", feedItem.Title.Text, feedItem.PublishDate.DateTime);
                 return true;
             }
         }

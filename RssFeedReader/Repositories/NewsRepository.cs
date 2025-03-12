@@ -15,12 +15,6 @@ public class NewsRepository(FeedContext context) : INewsRepository
                     .AsNoTracking()
                     .AsQueryable();
 
-        if (!string.IsNullOrEmpty(feedParams.Author))
-        {
-
-            news = news.Where(n => n.Author != null && n.Author.Contains(feedParams.Author));
-        }
-
         if (!string.IsNullOrEmpty(feedParams.Title))
         {
             news = news.Where(n => n.Title != null && n.Title.Contains(feedParams.Title));
@@ -36,9 +30,9 @@ public class NewsRepository(FeedContext context) : INewsRepository
             news = news.Where(n => n.PublishDate >= feedParams.FromDate.Value);
         }
 
-        if (feedParams.FromDate.HasValue)
+        if (feedParams.ToDate.HasValue)
         {
-            news = news.Where(n => n.PublishDate <= feedParams.FromDate.Value);
+            news = news.Where(n => n.PublishDate <= feedParams.ToDate.Value);
         }
 
         return news;

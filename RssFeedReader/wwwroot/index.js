@@ -112,16 +112,13 @@
                 filters[name] = value;
             }
         });
+        console.log('filters:', filters);
         return filters;
     }
 
     function updateFilter() {
         const filterHtml = `
             <form id="filter-form">
-                <div class="form-group">
-                    <label for="author">Author</label>
-                    <input type="text" class="form-control" id="author" name="author" aria-describedby="author-help">
-                </div>
                 <div class="form-group">
                     <label for="author">Title</label>
                     <input type="text" class="form-control" id="title" name="title" aria-describedby="title-help">
@@ -143,11 +140,12 @@
                 <div class="form-group">
                     <label for="page-size">Page Size</label>
                     <select class="form-control" id="page-size" name="pageSize" aria-label="Select page size">
-                        <option value="5">5</option>
+                        <option value="6">6</option>
                         <option value="10" selected>10</option>
-                        <option value="15">15</option>
+                        <option value="14">14</option>
                     </select>
                 </div>
+                 <div id="date-error-message" class="text-danger" style="display: none;"></div>
                 <button type="submit" class="btn btn-primary">Apply Filters</button>
                 <button type="button" id="clear-filters" class="btn btn-secondary">Clear Filters</button>
             </form>
@@ -175,15 +173,26 @@
         });
 
         $('#filter-form').on('submit', function (e) {
-            console.log('filter-form - submit')
+            validateDates(e); // Call validation function
+            if (e.isDefaultPrevented()) {
+                return; // Stop form submission if validation failed
+            }
+
             e.preventDefault();
             pageSize = parseInt($('#page-size').val());
             fetchFeeds(currentPage, getFilters());
         });
 
+        $('#dateFrom, #dateTo').on('change', function () {
+            validateDates(); // Validate on change
+        });
+
         $('#clear-filters').click(function () {
+            pageSize = parseInt($('#page-size').val());
+            currentPage = 1;
             $('#filter-form')[0].reset();
-            fetchFeeds(currentPage);
+            console.log(pageSize)
+            fetchFeeds(currentPage, getFilters());
         })
     }
 
@@ -192,6 +201,26 @@
             return ""; // Handle null or undefined descriptions
         }
         return description.replace(/<p>|<\/p>/g, '');
+    }
+
+    function validateDates(e) {
+        const dateFromValue = $('#dateFrom').val();
+        const dateToValue = $('#dateTo').val();
+        const errorMessage = $('#date-error-message');
+
+        if (dateFromValue && dateToValue) {
+            const dateFrom = new Date(dateFromValue);
+            const dateTo = new Date(dateToValue);
+
+            if (dateFrom > dateTo) {
+                errorMessage.text('Date from cannot be later than date to!').show();
+                alert('Date from cannot be later than date to!');
+                if (e) {
+                    e.preventDefault();
+                }
+            }
+        }
+        errorMessage.hide();
     }
 
     $('#filter-button').click(function () {

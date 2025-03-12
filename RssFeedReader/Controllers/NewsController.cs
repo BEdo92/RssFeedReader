@@ -15,16 +15,13 @@ public class NewsController(INewsRepository repository, IMapper mapper) : Contro
     public async Task<IActionResult> GetNews(
         int page = 1,
         int pageSize = 10,
-        string? author = null,
         string? title = null,
         string? feedSource = null,
         DateTime? dateFrom = null,
         DateTime? dateTo = null)
-
     {
         IQueryable<News> news = repository.GetNews(new FeedParams
         {
-            Author = author,
             Title = title,
             FeedSource = feedSource,
             FromDate = dateFrom,
