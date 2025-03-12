@@ -306,6 +306,13 @@
         } else {
             $('#pw-error-message').hide();
         }
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+        if (!passwordRegex.test(password)) {
+            $('#pw-error-message').text('Password must be at least 8 characters long and contain upper letters, lower letters, and numbers.').show();
+            return;
+        } else {
+            $('#pw-error-message').hide();
+        }
         $.ajax({
             url: '/api/account/register',
             type: 'POST',

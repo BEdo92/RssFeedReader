@@ -66,6 +66,7 @@ public class RssFeedService : BackgroundService
             }
             catch (Exception ex)
             {
+                // NOTE: Some RSS feeds fail sporadically. They overall work, but sometimes fail for some reason.
                 logger.LogError(ex, "Error occurred while fetching RSS feeds.");
             }
 
