@@ -103,9 +103,7 @@
         $('#modal-source').text(feed.feedSource);
         $('#modal-author').text(feed.author);
         $('#modal-categories').text(feed.categories || '');
-        if (feed.viewCount) {
-            $('#modal-views').text('View(s): ' + feed.viewCount);
-        }
+
 
         // NOTE: Some RSS feeds contain HTML, while others contain plain text.
         // Sanitize the content if it contains HTML.
@@ -129,6 +127,11 @@
             $('#modal-image').attr('src', feed.imageUrl).show();
         } else {
             $('#modal-image').hide();
+        }
+
+        // NOTE: Only show the count of views when other data is available.
+        if (feed.title && feed.viewCount) {
+            $('#modal-views').text('View(s): ' + feed.viewCount);
         }
 
         $('#feedModal').modal('show');
