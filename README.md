@@ -26,7 +26,7 @@ Before deploying it to production, several security considerations are necessary
 
 ## Branches
 
-- **`main` (or `master`):**
+- **`master`:**
     - Contains the implementation of the required task: gathering articles from four RSS feed sources, saving them to the database, fetching them, and displaying them to users.
 - **`feature`:**
     - Contains the implementation of the optional task: user registration/login functionality and statistics gathering.
