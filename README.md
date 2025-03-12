@@ -24,6 +24,13 @@ Before deploying it to production, several security considerations are necessary
 - Entity Framework Core
 - MS SQL
 
+## Branches
+
+- **`main` (or `master`):**
+    - Contains the implementation of the required task: gathering articles from four RSS feed sources, saving them to the database, fetching them, and displaying them to users.
+- **`feature`:**
+    - Contains the implementation of the optional task: user registration/login functionality and statistics gathering.
+
 ## Detailed Documentation:
 
 - Users can register, or sign in if they already have an account.
