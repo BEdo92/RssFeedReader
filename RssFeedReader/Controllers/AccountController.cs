@@ -15,7 +15,7 @@ public class AccountController(UserManager<AppUser> userManager, ITokenService t
     {
         if (await UserExistsAsync(registerDto.Username))
         {
-            return BadRequest("Username is taken");
+            return BadRequest(new { message = "Username is taken" });
         }
 
         var user = mapper.Map<AppUser>(registerDto);
@@ -45,14 +45,16 @@ public class AccountController(UserManager<AppUser> userManager, ITokenService t
 
         if (user is null || user.UserName is null)
         {
-            return Unauthorized("Invalid username");
+            // NOTE: We don't want to help hackers by telling them if the username or password is incorrect.
+            return Unauthorized(new { message = "Invalid username or password" });
         }
 
         var result = await userManager.CheckPasswordAsync(user, loginDto.Password);
 
         if (!result)
         {
-            return Unauthorized();
+            // NOTE: We don't want to help hackers by telling them if the username or password is incorrect.
+            return Unauthorized(new { message = "Invalid username or password" });
         }
 
         return new UserDto

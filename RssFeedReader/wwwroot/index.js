@@ -315,14 +315,19 @@
                 password: password
             }),
             success: function (data) {
-                alert('User registered successfully!');
                 localStorage.setItem('jwtToken', data.token);
                 location.reload();
                 $('#logout-button').show();
             },
             error: function (error) {
                 console.error('Error registering user:', error);
-                alert('Error registering user!');
+                let errorMessage = 'Error registering user!';
+                if (error.responseJSON && error.responseJSON.message) {
+                    errorMessage = error.responseJSON.message;
+                } else if (error.responseText) {
+                    errorMessage = error.responseText;
+                }
+                showNotification(errorMessage, 'danger');
             }
         });
     }
@@ -345,7 +350,13 @@
             },
             error: function (error) {
                 console.error('Error logging in user:', error);
-                alert('Error logging in user!');
+                let errorMessage = 'Error registering user!';
+                if (error.responseJSON && error.responseJSON.message) {
+                    errorMessage = error.responseJSON.message;
+                } else if (error.responseText) {
+                    errorMessage = error.responseText;
+                }
+                showNotification(errorMessage, 'danger');
             }
         });
     }
@@ -429,6 +440,19 @@
         localStorage.removeItem('jwtToken');
         location.reload();
     });
+
+    function showNotification(message, type) {
+        const container = $('#notification-container');
+        container.html(`
+             <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                ${message}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            `);
+        container.show();
+    }
 
     loadPage();
 });
