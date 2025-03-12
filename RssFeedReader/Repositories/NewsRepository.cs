@@ -8,6 +8,8 @@ namespace RssFeedReader.Repositories;
 
 public class NewsRepository(FeedContext context) : INewsRepository
 {
+    // TODO: Implement the whole repository pattern.
+    // For now, I intentionally didn't want to implement the whole pattern for now as it seems overkill for this project.
     public IQueryable<News> GetNews(FeedParams feedParams)
     {
         var news = context.News.OrderByDescending(x => x.PublishDate)

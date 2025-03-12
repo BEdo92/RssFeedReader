@@ -10,5 +10,7 @@ public class AutoMapperProfiles : Profile
     {
         CreateMap<News, NewsDTO>()
             .ForMember(dest => dest.FeedSource, opt => opt.MapFrom(src => src.FeedSource.Name));
+
+        CreateMap<RegisterDto, AppUser>();
     }
 }

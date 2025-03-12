@@ -8,19 +8,46 @@
     <link href="https://stackpath.bootstrapcdn.com/bootswatch/4.5.2/darkly/bootstrap.min.css" rel="stylesheet">
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
     <script src="index.js"></script>
+    <style>
+        .equal-width-button {
+            display: inline-block;
+            white-space: nowrap;
+        }
+
+        .d-inline-flex {
+            width: 100%;
+            justify-content: center;
+        }
+    </style>
 </head>
 <body>
     <header class="bg-primary text-white text-center py-3">
+        <div class="d-flex flex-column align-items-start p-3">
+            <button id="logout-button" class="btn btn-secondary mb-2" style="display: none;">Log out</button>
+        </div>
         <h1>RSS Feed Reader</h1>
     </header>
+
     <main class="container mt-4">
-        <button id="filter-button" class="btn btn-primary">Filter</button>
-        <div id="filter-controls" style="display: none;"></div>
-        <div id="feed-container" class="row"></div>
-        <div id="pagination-controls"></div>
+        <div id="user-logged-in" style="display: none;">
+            <button id="filter-button" class="btn btn-primary">Filter</button>
+            <div id="filter-controls" style="display: none;"></div>
+            <div id="feed-container" class="row"></div>
+            <div id="pagination-controls"></div>
+        </div>
+        <div id="user-logged-out" style="display: none;">
+            <h3 class="text-center">Welcome to the RSS Feed Reader</h3>
+            <p class="text-center">Sign up to explore the latest feeds. Don't have an account? Register now!</p>
+            <div class="d-inline-flex justify-content-center">
+                <button id="register-button" class="btn btn-secondary mx-2 equal-width-button">Sign up</button>
+                <button id="login-button" class="btn btn-primary mx-2 equal-width-button">Log in</button>
+            </div>
+            <div id="register-controls" style="display: none;"></div>
+            <div id="login-controls" style="display: none;"></div>
+        </div>
     </main>
     <footer class="bg-light text-center py-3 mt-4">
-        <p>&copy; 2025 RSS Feed Reader</p>
+        <p>&copy; 2025 RSS Feed Reader by Bonifert</p>
     </footer>
     <div class="modal fade" id="feedModal" tabindex="-1" role="dialog" aria-labelledby="feedModalLabel" aria-hidden="true">
         <div class="modal-dialog" role="document">

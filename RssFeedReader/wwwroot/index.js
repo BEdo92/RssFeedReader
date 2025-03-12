@@ -2,10 +2,28 @@
     let currentPage = 1;
     let pageSize = 10;
 
+    function loadPage() {
+        const token = localStorage.getItem('jwtToken');
+        if (token) {
+            $('#user-logged-in').show();
+            $('#logout-button').show();
+            updateFilter();
+            fetchFeeds(currentPage);
+        } else {
+            $('#user-logged-out').show();
+            register();
+            login();
+        }
+    }
+
     function fetchFeeds(page, filters = {}) {
         const filterParams = $.param(filters);
+        const token = localStorage.getItem('jwtToken');
         $.ajax({
             url: `/api/news?page=${page}&pageSize=${pageSize}&${filterParams}`,
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
             type: 'GET',
             success: function (data) {
                 if (data && Array.isArray(data.items)) {
@@ -153,10 +171,14 @@
 
         $('#filter-controls').html(filterHtml);
 
-        // Fetch sources for the dropdown
+        // NOTE: Fetch sources for the dropdown.
+        const token = localStorage.getItem('jwtToken');
         $.ajax({
             url: '/api/sources',
             type: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
             success: function (data) {
                 if (Array.isArray(data)) {
                     const sourceDropdown = $('#feedSource');
@@ -196,6 +218,116 @@
         })
     }
 
+    function register() {
+        const registerHtml = `
+            <form id="register-form">
+                <div class="form-group">
+                    <label for="username">User name</label>
+                    <input type="text" class="form-control" id="username" name="username" aria-describedby="username-help">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" class="form-control" id="password" name="password" aria-describedby="password-help">
+                </div>
+               <div class="form-group">
+                    <label for="confirmPassword">Confirm password</label>
+                    <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" aria-describedby="confirm-password-help">
+                </div>
+                <div id="pw-error-message" class="text-danger" style="display: none;"></div>
+                <button type="submit" class="btn btn-primary">Register</button>
+                <button type="button" id="clear-register-form" class="btn btn-secondary">Clear</button>
+            </form>
+        `;
+
+        $('#register-controls').html(registerHtml);
+
+        $('#register-form').on('submit', function (e) {
+            e.preventDefault();
+            registerUser();
+        });
+
+        $('#clear-register-form').click(function () {
+            $('#filter-form')[0].reset();
+        })
+    }
+
+    function login() {
+        const loginHtml = `
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="username">User name</label>
+                    <input type="text" class="form-control" id="usernamel" name="username" aria-describedby="username-help">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" class="form-control" id="passwordl" name="password" aria-describedby="password-help">
+                </div>
+                <button type="submit" class="btn btn-primary">Log in</button>
+            </form>
+        `;
+
+        $('#login-controls').html(loginHtml);
+
+        $('#login-form').on('submit', function (e) {
+            e.preventDefault();
+            loginUser();
+        });
+    }
+
+    function registerUser() {
+        const username = $('#username').val();
+        const password = $('#password').val();
+        const confirmPassword = $('#confirmPassword').val();
+        if (password !== confirmPassword) {
+            alert('Passwords do not match!');
+            return;
+        }
+        $.ajax({
+            url: '/api/account/register',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                username: username,
+                password: password
+            }),
+            success: function (data) {
+                console.log('User registered:', data);
+                alert('User registered successfully!');
+                localStorage.setItem('jwtToken', data.token);
+                location.reload();
+                $('#logout-button').show();
+            },
+            error: function (error) {
+                console.error('Error registering user:', error);
+                alert('Error registering user!');
+            }
+        });
+    }
+
+    function loginUser() {
+        const username = $('#usernamel').val();
+        const password = $('#passwordl').val();
+        $.ajax({
+            url: '/api/account/login',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                username: username,
+                password: password
+            }),
+            success: function (data) {
+                console.log('User logged in:', data);
+                localStorage.setItem('jwtToken', data.token);
+                location.reload();
+                $('#logout-button').show();
+            },
+            error: function (error) {
+                console.error('Error logging in user:', error);
+                alert('Error logging in user!');
+            }
+        });
+    }
+
     function removePTags(description) {
         if (!description) {
             return ""; // Handle null or undefined descriptions
@@ -213,8 +345,8 @@
             const dateTo = new Date(dateToValue);
 
             if (dateFrom > dateTo) {
-                errorMessage.text('Date from cannot be later than date to!').show();
-                alert('Date from cannot be later than date to!');
+                errorMessage.text('"Date from" cannot be later than "date to"!').show();
+                alert('"Date from" cannot be later than "date to"!');
                 if (e) {
                     e.preventDefault();
                 }
@@ -223,10 +355,26 @@
         errorMessage.hide();
     }
 
+    // NOTE: Event listeners to hide or show the base elements of the page.
+
     $('#filter-button').click(function () {
         $('#filter-controls').toggle();
     });
 
-    updateFilter();
-    fetchFeeds(currentPage);
+    $('#register-button').click(function () {
+        $('#login-button').toggle();
+        $('#register-controls').toggle();
+    });
+
+    $('#login-button').click(function () {
+        $('#register-button').toggle();
+        $('#login-controls').toggle();
+    });
+
+    $('#logout-button').click(function () {
+        localStorage.removeItem('jwtToken');
+        location.reload();
+    });
+
+    loadPage();
 });

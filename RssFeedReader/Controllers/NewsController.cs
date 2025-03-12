@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RssFeedReader.DTOs;
 using RssFeedReader.Helpers;
@@ -7,9 +8,8 @@ using RssFeedReader.Models;
 
 namespace RssFeedReader.Controllers;
 
-[ApiController]
-[Route("api/[controller]")]
-public class NewsController(INewsRepository repository, IMapper mapper) : ControllerBase
+[Authorize]
+public class NewsController(INewsRepository repository, IMapper mapper) : BaseApiController
 {
     [HttpGet]
     public async Task<IActionResult> GetNews(
