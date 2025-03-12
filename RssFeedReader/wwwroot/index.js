@@ -66,7 +66,7 @@
         //}
 
         if (!feed.title) {
-            $('#feedModalLabel').text('Invalid title.');
+            $('#feedModalLabel').text('There was an error while parsing the data.');
         } else {
             $('#feedModalLabel').text(feed.title);
         }
