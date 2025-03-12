@@ -43,7 +43,7 @@ Before deploying it to production, several security considerations are necessary
 - Filters can be reset using the "Reset Filters" button.
 - Pagination is available with "Next" and "Previous" buttons. Users can also select a specific page from a dropdown menu, which defaults to the current page.
 - Clicking on any feed card displays a pop-up with the article details. The "Read Original Article" button opens the original article in a new tab.
-- The total number of views is tracked, but not individually per user.
+- The total number of views is tracked, but not individually per user. The number of views only updates when the whole list updates.
 
 ## Note for Developers:
 
