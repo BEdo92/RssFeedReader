@@ -11,6 +11,7 @@ public class RssFeedService : BackgroundService
     private readonly HttpClient httpClient;
     private readonly IServiceScopeFactory scopeFactory;
     private readonly ILogger<RssFeedService> logger;
+    private const int FETCHING_INTERVAL = 5;
 
     public RssFeedService(IServiceScopeFactory scopeFactory, ILogger<RssFeedService> logger)
     {
@@ -35,6 +36,7 @@ public class RssFeedService : BackgroundService
 
                 using IServiceScope scope = scopeFactory.CreateScope();
                 FeedContext dbContext = scope.ServiceProvider.GetRequiredService<FeedContext>();
+                bool isInitial = !await dbContext.News.AnyAsync(stoppingToken);
                 List<FeedSource> feedSources = await dbContext.FeedSources.ToListAsync(stoppingToken);
 
                 foreach (FeedSource? feedSource in feedSources)
@@ -42,7 +44,8 @@ public class RssFeedService : BackgroundService
                     HttpResponseMessage response;
                     try
                     {
-                        if (!await dbContext.News.AnyAsync(stoppingToken))
+                        // NOTE: This is the initial load.
+                        if (isInitial)
                         {
                             var request = new HttpRequestMessage(HttpMethod.Get, feedSource.Url);
                             // NOTE: This is not the best way to handle the If-Modified-Since header, as RSS Servers may not support
@@ -55,19 +58,19 @@ public class RssFeedService : BackgroundService
                                 logger.LogInformation("No new feeds found for {FeedSourceName}.", feedSource.Name);
                                 continue;
                             }
-
-                            response.EnsureSuccessStatusCode();
-
-                            await ProcessFeedAsync(dbContext, feedSource, response, stoppingToken);
                         }
-                        else
+                        else // NOTE: The 'normal' load.
                         {
                             response = await httpClient.GetAsync(feedSource.Url, stoppingToken);
                         }
+                        response.EnsureSuccessStatusCode();
+
+                        using Stream stream = await response.Content.ReadAsStreamAsync(stoppingToken);
+                        await ProcessFeedAsync(dbContext, feedSource, stream, stoppingToken);
                     }
                     catch (Exception e)
                     {
-                        logger.LogError("Error while sending the request for feed source: {feedSource}.", feedSource);
+                        logger.LogError("Error while sending the request for feed source: {feedSource}. {e}", feedSource, e);
                     }
                 }
             }
@@ -77,13 +80,12 @@ public class RssFeedService : BackgroundService
                 logger.LogError(ex, "Error occurred while fetching and processing RSS feeds at {hour}:{minute}.", DateTime.Now.Hour, DateTime.Now.Minute);
             }
 
-            await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+            await Task.Delay(TimeSpan.FromMinutes(FETCHING_INTERVAL), stoppingToken);
         }
     }
 
-    private async Task ProcessFeedAsync(FeedContext dbContext, FeedSource feedSource, HttpResponseMessage response, CancellationToken stoppingToken)
+    private async Task ProcessFeedAsync(FeedContext dbContext, FeedSource feedSource, Stream stream, CancellationToken stoppingToken)
     {
-        using (var stream = await response.Content.ReadAsStreamAsync(stoppingToken))
         using (XmlReader reader = XmlReader.Create(stream))
         {
             SyndicationFeed feed = SyndicationFeed.Load(reader);
@@ -113,7 +115,7 @@ public class RssFeedService : BackgroundService
                     ImageUrl = feedItem.Links.FirstOrDefault(l => l.MediaType == "image/jpeg" || l.MediaType == "image/png")?.Uri.ToString(),
                 });
 
-                logger.LogDebug("New article added: {Title}", feedItem.Title.Text);
+                logger.LogInformation("New article added: {Title}", feedItem.Title.Text);
             }
         }
 
