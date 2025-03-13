@@ -62,9 +62,11 @@
 
         $('.feed-item').click(function () {
             const feed = $(this).data('feed');
-            increaseViewCount(feed.id);
-            console.log('Feed:', feed);
 
+            if (feed.id) {
+                increaseViewCount(feed.id);
+            }
+            
             showPopup(feed);
         });
     }
@@ -83,6 +85,11 @@
         //if (typeof feed === 'string') {
         //    feed = JSON.parse(feed);
         //}
+
+        // NOTE: Only show the count of views when other data is available.
+        if (feed.title && feed.viewCount) {
+            $('#modal-views').text('View(s): ' + feed.viewCount);
+        }
 
         if (!feed.title) {
             $('#feedModalLabel').text('There was an error while parsing the data.');
@@ -127,11 +134,6 @@
             $('#modal-image').attr('src', feed.imageUrl).show();
         } else {
             $('#modal-image').hide();
-        }
-
-        // NOTE: Only show the count of views when other data is available.
-        if (feed.title && feed.viewCount) {
-            $('#modal-views').text('View(s): ' + feed.viewCount);
         }
 
         $('#feedModal').modal('show');
