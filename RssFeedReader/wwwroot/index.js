@@ -66,7 +66,7 @@
             if (feed.id) {
                 increaseViewCount(feed.id);
             }
-            
+
             showPopup(feed);
         });
     }
@@ -295,7 +295,7 @@
         });
 
         $('#clear-register-form').click(function () {
-            $('#filter-form')[0].reset();
+            $('#register-form')[0].reset();
         })
     }
 
@@ -460,13 +460,21 @@
     });
 
     $('#register-button').click(function () {
-        $('#login-button').toggle();
-        $('#register-controls').toggle();
+        // NOTE: Show the other button to be able to switch and to avoid confusion.
+        $('#login-button').show();
+        $('#register-button').hide();
+        $('#register-controls').show();
+        $('#login-controls').hide();
+        // NOTE: Clear the login form when switching to increase security.
+        $('#login-form')[0].reset();
     });
 
     $('#login-button').click(function () {
-        $('#register-button').toggle();
-        $('#login-controls').toggle();
+        $('#register-button').show();
+        $('#login-button').hide();
+        $('#login-controls').show();
+        $('#register-controls').hide();
+        $('#register-form')[0].reset();
     });
 
     $('#logout-button').click(function () {
