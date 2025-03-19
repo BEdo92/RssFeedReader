@@ -87,8 +87,15 @@
         //}
 
         // NOTE: Only show the count of views when other data is available.
-        if (feed.title && feed.viewCount) {
-            $('#modal-views').text('View(s): ' + feed.viewCount);
+        if (feed.title) {
+            refreshViewCount(feed.id).then(viewCount => {
+                console.log(feed.id + ' ' + viewCount);
+                if (viewCount) {
+                    $('#modal-views').text('View(s): ' + viewCount);
+                }
+            }).catch(error => {
+                console.error('Error getting view count:', error);
+            });
         }
 
         if (!feed.title) {
@@ -432,6 +439,25 @@
             },
             error: function (error) {
                 console.error('Error increasing view count:', error);
+            }
+        });
+    }
+
+    function refreshViewCount(feedId) {
+        const token = localStorage.getItem('jwtToken');
+        return $.ajax({
+            url: `/api/statistics/${feedId}`,
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            type: 'GET',
+            success: function (data) {
+                console.log('ViewCount from the server: ' + data);
+                return data;
+            },
+            error: function (error) {
+                console.error('Error getting view count:', error);
+                return 0;
             }
         });
     }

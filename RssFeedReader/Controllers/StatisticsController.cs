@@ -27,4 +27,15 @@ public class StatisticsController(FeedContext context) : BaseApiController
         await context.SaveChangesAsync();
         return Ok();
     }
+
+    [HttpGet("{newsId}")]
+    public async Task<IActionResult> GetViewCount(int newsId)
+    {
+        var statistics = await context.Statistics.FirstOrDefaultAsync(s => s.NewsId == newsId);
+        if (statistics == null)
+        {
+            return Ok(0);
+        }
+        return Ok(statistics.ViewCount);
+    }
 }
