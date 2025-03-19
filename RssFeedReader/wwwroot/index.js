@@ -2,9 +2,20 @@
     let currentPage = 1;
     let pageSize = 10;
 
+    //function isTokenExpired(token) {
+    //    try {
+    //        const decoded = jwt_decode(token);
+    //        const currentTime = Math.floor(Date.now() / 1000);
+    //        return decoded.exp < currentTime;
+    //    } catch (error) {
+    //        console.error('Error decoding token:', error);
+    //        return true;
+    //    }
+    //}
+
     function loadPage() {
         const token = localStorage.getItem('jwtToken');
-        if (token) {
+        if (token /*&& !isTokenExpired(token)*/) {
             $('#user-logged-in').show();
             $('#logout-button').show();
             updateFilter();
