@@ -59,7 +59,7 @@
                 <div class="col-md-6 mb-3 d-flex flex-column">
                     <div class="feed-item card flex-grow-1" data-feed='${JSON.stringify(feed)}'>
                         <div class="card-body">
-                            <h4 class="card-title"><a href="${feed.url}" target="_blank">${feed.title}</a></h4>
+                            <h4 class="card-title">${feed.title}</h4>
                             <h7 class="card-subtitle mb-2 text-muted">${new Date(feed.publishDate).toLocaleString()}</h7>
                             <p class="card-text">${feed.feedSource || ''}</p>
                             <p class="card-text">${feed.author || ''}</p>

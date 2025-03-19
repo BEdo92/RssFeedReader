@@ -36,12 +36,8 @@ app.UseHttpsRedirection();
 
 app.UseMiddleware<ExceptionMiddleware>();
 
+app.UseDefaultFiles();
 app.UseStaticFiles();
-
-//app.UseCors(x => x
-//    .AllowAnyHeader()
-//    .AllowAnyMethod()
-//    .WithOrigins("https://localhost:7170"));
 
 app.UseCors();
 
