@@ -2,9 +2,20 @@
     let currentPage = 1;
     let pageSize = 10;
 
+    //function isTokenExpired(token) {
+    //    try {
+    //        const decoded = jwt_decode(token);
+    //        const currentTime = Math.floor(Date.now() / 1000);
+    //        return decoded.exp < currentTime;
+    //    } catch (error) {
+    //        console.error('Error decoding token:', error);
+    //        return true;
+    //    }
+    //}
+
     function loadPage() {
         const token = localStorage.getItem('jwtToken');
-        if (token) {
+        if (token /*&& !isTokenExpired(token)*/) {
             $('#user-logged-in').show();
             $('#logout-button').show();
             updateFilter();
@@ -48,7 +59,7 @@
                 <div class="col-md-6 mb-3 d-flex flex-column">
                     <div class="feed-item card flex-grow-1" data-feed='${JSON.stringify(feed)}'>
                         <div class="card-body">
-                            <h4 class="card-title"><a href="${feed.url}" target="_blank">${feed.title}</a></h4>
+                            <h4 class="card-title">${feed.title}</h4>
                             <h7 class="card-subtitle mb-2 text-muted">${new Date(feed.publishDate).toLocaleString()}</h7>
                             <p class="card-text">${feed.feedSource || ''}</p>
                             <p class="card-text">${feed.author || ''}</p>
@@ -87,8 +98,15 @@
         //}
 
         // NOTE: Only show the count of views when other data is available.
-        if (feed.title && feed.viewCount) {
-            $('#modal-views').text('View(s): ' + feed.viewCount);
+        if (feed.title) {
+            refreshViewCount(feed.id).then(viewCount => {
+                console.log(feed.id + ' ' + viewCount);
+                if (viewCount) {
+                    $('#modal-views').text('View(s): ' + viewCount);
+                }
+            }).catch(error => {
+                console.error('Error getting view count:', error);
+            });
         }
 
         if (!feed.title) {
@@ -432,6 +450,25 @@
             },
             error: function (error) {
                 console.error('Error increasing view count:', error);
+            }
+        });
+    }
+
+    function refreshViewCount(feedId) {
+        const token = localStorage.getItem('jwtToken');
+        return $.ajax({
+            url: `/api/statistics/${feedId}`,
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            type: 'GET',
+            success: function (data) {
+                console.log('ViewCount from the server: ' + data);
+                return data;
+            },
+            error: function (error) {
+                console.error('Error getting view count:', error);
+                return 0;
             }
         });
     }

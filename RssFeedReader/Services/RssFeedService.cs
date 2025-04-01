@@ -28,6 +28,8 @@ public class RssFeedService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        await InitialLoad(stoppingToken);
+
         while (!stoppingToken.IsCancellationRequested)
         {
             try
@@ -36,7 +38,6 @@ public class RssFeedService : BackgroundService
 
                 using IServiceScope scope = scopeFactory.CreateScope();
                 FeedContext dbContext = scope.ServiceProvider.GetRequiredService<FeedContext>();
-                bool isInitial = !await dbContext.News.AnyAsync(stoppingToken);
                 List<FeedSource> feedSources = await dbContext.FeedSources.ToListAsync(stoppingToken);
 
                 foreach (FeedSource? feedSource in feedSources)
@@ -44,25 +45,7 @@ public class RssFeedService : BackgroundService
                     HttpResponseMessage response;
                     try
                     {
-                        // NOTE: This is the initial load.
-                        if (isInitial)
-                        {
-                            var request = new HttpRequestMessage(HttpMethod.Get, feedSource.Url);
-                            // NOTE: This is not the best way to handle the If-Modified-Since header, as RSS Servers may not support
-                            // it or they may use the date of the modification of the XML file, not the date of the last news news.
-                            request.Headers.IfModifiedSince = DateTime.Now.AddDays(-7).ToUniversalTime();
-                            response = await httpClient.SendAsync(request, stoppingToken);
-
-                            if (response.StatusCode == System.Net.HttpStatusCode.NotModified)
-                            {
-                                logger.LogInformation("No new feeds found for {FeedSourceName}.", feedSource.Name);
-                                continue;
-                            }
-                        }
-                        else // NOTE: The 'normal' load.
-                        {
-                            response = await httpClient.GetAsync(feedSource.Url, stoppingToken);
-                        }
+                        response = await httpClient.GetAsync(feedSource.Url, stoppingToken);
                         response.EnsureSuccessStatusCode();
 
                         using Stream stream = await response.Content.ReadAsStreamAsync(stoppingToken);
@@ -81,6 +64,48 @@ public class RssFeedService : BackgroundService
             }
 
             await Task.Delay(TimeSpan.FromMinutes(FETCHING_INTERVAL), stoppingToken);
+        }
+    }
+
+    private async Task InitialLoad(CancellationToken stoppingToken)
+    {
+        try
+        {
+            using IServiceScope scope = scopeFactory.CreateScope();
+            FeedContext dbContext = scope.ServiceProvider.GetRequiredService<FeedContext>();
+            List<FeedSource> feedSources = await dbContext.FeedSources.ToListAsync(stoppingToken);
+
+            foreach (FeedSource? feedSource in feedSources)
+            {
+                HttpResponseMessage response;
+                try
+                {
+                    var request = new HttpRequestMessage(HttpMethod.Get, feedSource.Url);
+                    // NOTE: This is not the best way to handle the If-Modified-Since header, as RSS Servers may not support
+                    // it or they may use the date of the modification of the XML file, not the date of the last news news.
+                    request.Headers.IfModifiedSince = DateTime.Now.AddDays(-7).ToUniversalTime();
+                    response = await httpClient.SendAsync(request, stoppingToken);
+
+                    if (response.StatusCode == System.Net.HttpStatusCode.NotModified)
+                    {
+                        logger.LogInformation("No new feeds found for {FeedSourceName}.", feedSource.Name);
+                        continue;
+                    }
+
+                    response.EnsureSuccessStatusCode();
+
+                    using Stream stream = await response.Content.ReadAsStreamAsync(stoppingToken);
+                    await ProcessFeedAsync(dbContext, feedSource, stream, stoppingToken);
+                }
+                catch (Exception)
+                {
+                    logger.LogError("Error occurred while processing feed: {feedSource} durint initial load.", feedSource);
+                }
+            }
+        }
+        catch (Exception)
+        {
+            logger.LogError("Error occurred while fetching and processing RSS feeds during the initial load.");
         }
     }
 

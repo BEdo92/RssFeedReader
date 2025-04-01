@@ -8,22 +8,29 @@
     <link href="https://stackpath.bootstrapcdn.com/bootswatch/4.5.2/darkly/bootstrap.min.css" rel="stylesheet">
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify@2.4.1/dist/purify.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jwt-decode@3.1.2/build/jwt-decode.min.js"></script>
     <script src="index.js"></script>
     <style>
         .feed-item {
             cursor: pointer;
             transition: background-color 0.3s ease;
         }
-        .feed-item:hover {
+
+            .feed-item:hover {
                 background-color: #343a40;
-        }
+            }
+
         .equal-width-button {
             display: inline-block;
             white-space: nowrap;
         }
+
         .d-inline-flex {
             width: 100%;
             justify-content: center;
+        }
+        .card-title {
+            color: #b3e7e8;
         }
     </style>
 </head>
