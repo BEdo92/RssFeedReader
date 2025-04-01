@@ -24,17 +24,9 @@ Before deploying it to production, several security considerations are necessary
 - Entity Framework Core
 - MS SQL
 
-## Branches
-
-- **`master`:**
-    - Contains the implementation of the required task: gathering articles from four RSS feed sources, saving them to the database, fetching them, and displaying them to users.
-- **`feature`:**
-    - Contains the implementation of the optional task: user registration/login functionality and statistics gathering.
-
 ## Detailed Documentation:
 
 - Users can register, or sign in if they already have an account.
-- Currently, only the username and password are required.
 - The authentication token expires after two days.
 - For signed-in users, the RSS feed is displayed.
 - Initially, articles from the last seven days are loaded, assuming the RSS servers are functioning correctly.
@@ -43,7 +35,6 @@ Before deploying it to production, several security considerations are necessary
 - Filters can be reset using the "Reset Filters" button.
 - Pagination is available with "Next" and "Previous" buttons. Users can also select a specific page from a dropdown menu, which defaults to the current page.
 - Clicking on any feed card displays a pop-up with the article details. The "Read Original Article" button opens the original article in a new tab.
-- The total number of views is tracked, but not individually per user. The number of views only updates when the whole list updates.
 
 ## Note for Developers:
 
