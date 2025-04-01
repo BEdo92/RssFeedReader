@@ -2,17 +2,6 @@
     let currentPage = 1;
     let pageSize = 10;
 
-    //function isTokenExpired(token) {
-    //    try {
-    //        const decoded = jwt_decode(token);
-    //        const currentTime = Math.floor(Date.now() / 1000);
-    //        return decoded.exp < currentTime;
-    //    } catch (error) {
-    //        console.error('Error decoding token:', error);
-    //        return true;
-    //    }
-    //}
-
     function loadPage() {
         const token = localStorage.getItem('jwtToken');
         if (token /*&& !isTokenExpired(token)*/) {
@@ -292,6 +281,10 @@
                     <input type="text" class="form-control" id="username" name="username" aria-describedby="username-help">
                 </div>
                 <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="text" class="form-control" id="email" name="email" aria-describedby="email-help">
+                </div>
+                <div class="form-group">
                     <label for="password">Password</label>
                     <input type="password" class="form-control" id="password" name="password" aria-describedby="password-help">
                 </div>
@@ -299,6 +292,7 @@
                     <label for="confirmPassword">Confirm password</label>
                     <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" aria-describedby="confirm-password-help">
                 </div>
+                <div id="em-error-message" class="text-danger" style="display: none;"></div>
                 <div id="pw-error-message" class="text-danger" style="display: none;"></div>
                 <button type="submit" class="btn btn-primary">Register</button>
                 <button type="button" id="clear-register-form" class="btn btn-secondary">Clear</button>
@@ -321,8 +315,8 @@
         const loginHtml = `
             <form id="login-form">
                 <div class="form-group">
-                    <label for="username">User name</label>
-                    <input type="text" class="form-control" id="usernamel" name="username" aria-describedby="username-help">
+                    <label for="email">Email</label>
+                    <input type="text" class="form-control" id="emaill" name="email" aria-describedby="email-help">
                 </div>
                 <div class="form-group">
                     <label for="password">Password</label>
@@ -342,14 +336,25 @@
 
     function registerUser() {
         const username = $('#username').val();
+        const email = $('#email').val();
         const password = $('#password').val();
         const confirmPassword = $('#confirmPassword').val();
+
         if (password !== confirmPassword) {
             $('#pw-error-message').text('Passwords do not match!').show();
             return;
         } else {
             $('#pw-error-message').hide();
         }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            $('#em-error-message').text('Invalid email format!').show();
+            return;
+        } else {
+            $('#em-error-message').hide();
+        }
+
         const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
         if (!passwordRegex.test(password)) {
             $('#pw-error-message').text('Password must be at least 8 characters long and contain upper letters, lower letters, and numbers.').show();
@@ -357,12 +362,14 @@
         } else {
             $('#pw-error-message').hide();
         }
+
         $.ajax({
             url: '/api/account/register',
             type: 'POST',
             contentType: 'application/json',
             data: JSON.stringify({
                 username: username,
+                email: email,
                 password: password
             }),
             success: function (data) {
@@ -384,14 +391,14 @@
     }
 
     function loginUser() {
-        const username = $('#usernamel').val();
+        const email = $('#emaill').val();
         const password = $('#passwordl').val();
         $.ajax({
             url: '/api/account/login',
             type: 'POST',
             contentType: 'application/json',
             data: JSON.stringify({
-                username: username,
+                email: email,
                 password: password
             }),
             success: function (data) {
