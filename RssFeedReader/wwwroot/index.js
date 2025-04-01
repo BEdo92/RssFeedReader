@@ -2,10 +2,39 @@
     let currentPage = 1;
     let pageSize = 10;
 
+    //function isTokenExpired(token) {
+    //    try {
+    //        const decoded = jwt_decode(token);
+    //        const currentTime = Math.floor(Date.now() / 1000);
+    //        return decoded.exp < currentTime;
+    //    } catch (error) {
+    //        console.error('Error decoding token:', error);
+    //        return true;
+    //    }
+    //}
+
+    function loadPage() {
+        const token = localStorage.getItem('jwtToken');
+        if (token /*&& !isTokenExpired(token)*/) {
+            $('#user-logged-in').show();
+            $('#logout-button').show();
+            updateFilter();
+            fetchFeeds(currentPage);
+        } else {
+            $('#user-logged-out').show();
+            register();
+            login();
+        }
+    }
+
     function fetchFeeds(page, filters = {}) {
         const filterParams = $.param(filters);
+        const token = localStorage.getItem('jwtToken');
         $.ajax({
             url: `/api/news?page=${page}&pageSize=${pageSize}&${filterParams}`,
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
             type: 'GET',
             success: function (data) {
                 if (data && Array.isArray(data.items)) {
@@ -30,7 +59,7 @@
                 <div class="col-md-6 mb-3 d-flex flex-column">
                     <div class="feed-item card flex-grow-1" data-feed='${JSON.stringify(feed)}'>
                         <div class="card-body">
-                            <h4 class="card-title"><a href="${feed.url}" target="_blank">${feed.title}</a></h4>
+                            <h4 class="card-title">${feed.title}</h4>
                             <h7 class="card-subtitle mb-2 text-muted">${new Date(feed.publishDate).toLocaleString()}</h7>
                             <p class="card-text">${feed.feedSource || ''}</p>
                             <p class="card-text">${feed.author || ''}</p>
@@ -44,7 +73,10 @@
 
         $('.feed-item').click(function () {
             const feed = $(this).data('feed');
-            console.log('Feed:', feed);
+
+            if (feed.id) {
+                increaseViewCount(feed.id);
+            }
 
             showPopup(feed);
         });
@@ -65,6 +97,18 @@
         //    feed = JSON.parse(feed);
         //}
 
+        // NOTE: Only show the count of views when other data is available.
+        if (feed.title) {
+            refreshViewCount(feed.id).then(viewCount => {
+                console.log(feed.id + ' ' + viewCount);
+                if (viewCount) {
+                    $('#modal-views').text('View(s): ' + viewCount);
+                }
+            }).catch(error => {
+                console.error('Error getting view count:', error);
+            });
+        }
+
         if (!feed.title) {
             $('#feedModalLabel').text('There was an error while parsing the data.');
         } else {
@@ -84,6 +128,7 @@
         $('#modal-source').text(feed.feedSource);
         $('#modal-author').text(feed.author);
         $('#modal-categories').text(feed.categories || '');
+
 
         // NOTE: Some RSS feeds contain HTML, while others contain plain text.
         // Sanitize the content if it contains HTML.
@@ -113,7 +158,6 @@
     }
 
     function updatePagination(totalPages, page) {
-        console.log(totalPages)
         let paginationHtml = '';
 
         if (page > 1) {
@@ -154,7 +198,6 @@
                 filters[name] = value;
             }
         });
-        console.log('filters:', filters);
         return filters;
     }
 
@@ -196,9 +239,13 @@
         $('#filter-controls').html(filterHtml);
 
         // NOTE: Fetch the feed sources for the dropdown.
+        const token = localStorage.getItem('jwtToken');
         $.ajax({
             url: '/api/sources',
             type: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
             success: function (data) {
                 if (Array.isArray(data)) {
                     const sourceDropdown = $('#feedSource');
@@ -233,9 +280,136 @@
             pageSize = parseInt($('#page-size').val());
             currentPage = 1;
             $('#filter-form')[0].reset();
-            console.log(pageSize)
             fetchFeeds(currentPage, getFilters());
         })
+    }
+
+    function register() {
+        const registerHtml = `
+            <form id="register-form">
+                <div class="form-group">
+                    <label for="username">User name</label>
+                    <input type="text" class="form-control" id="username" name="username" aria-describedby="username-help">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" class="form-control" id="password" name="password" aria-describedby="password-help">
+                </div>
+               <div class="form-group">
+                    <label for="confirmPassword">Confirm password</label>
+                    <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" aria-describedby="confirm-password-help">
+                </div>
+                <div id="pw-error-message" class="text-danger" style="display: none;"></div>
+                <button type="submit" class="btn btn-primary">Register</button>
+                <button type="button" id="clear-register-form" class="btn btn-secondary">Clear</button>
+            </form>
+        `;
+
+        $('#register-controls').html(registerHtml);
+
+        $('#register-form').on('submit', function (e) {
+            e.preventDefault();
+            registerUser();
+        });
+
+        $('#clear-register-form').click(function () {
+            $('#register-form')[0].reset();
+        })
+    }
+
+    function login() {
+        const loginHtml = `
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="username">User name</label>
+                    <input type="text" class="form-control" id="usernamel" name="username" aria-describedby="username-help">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" class="form-control" id="passwordl" name="password" aria-describedby="password-help">
+                </div>
+                <button type="submit" class="btn btn-primary">Log in</button>
+            </form>
+        `;
+
+        $('#login-controls').html(loginHtml);
+
+        $('#login-form').on('submit', function (e) {
+            e.preventDefault();
+            loginUser();
+        });
+    }
+
+    function registerUser() {
+        const username = $('#username').val();
+        const password = $('#password').val();
+        const confirmPassword = $('#confirmPassword').val();
+        if (password !== confirmPassword) {
+            $('#pw-error-message').text('Passwords do not match!').show();
+            return;
+        } else {
+            $('#pw-error-message').hide();
+        }
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+        if (!passwordRegex.test(password)) {
+            $('#pw-error-message').text('Password must be at least 8 characters long and contain upper letters, lower letters, and numbers.').show();
+            return;
+        } else {
+            $('#pw-error-message').hide();
+        }
+        $.ajax({
+            url: '/api/account/register',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                username: username,
+                password: password
+            }),
+            success: function (data) {
+                localStorage.setItem('jwtToken', data.token);
+                location.reload();
+                $('#logout-button').show();
+            },
+            error: function (error) {
+                console.error('Error registering user:', error);
+                let errorMessage = 'Error registering user!';
+                if (error.responseJSON && error.responseJSON.message) {
+                    errorMessage = error.responseJSON.message;
+                } else if (error.responseText) {
+                    errorMessage = error.responseText;
+                }
+                showNotification(errorMessage, 'danger');
+            }
+        });
+    }
+
+    function loginUser() {
+        const username = $('#usernamel').val();
+        const password = $('#passwordl').val();
+        $.ajax({
+            url: '/api/account/login',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                username: username,
+                password: password
+            }),
+            success: function (data) {
+                localStorage.setItem('jwtToken', data.token);
+                location.reload();
+                $('#logout-button').show();
+            },
+            error: function (error) {
+                console.error('Error logging in user:', error);
+                let errorMessage = 'Error registering user!';
+                if (error.responseJSON && error.responseJSON.message) {
+                    errorMessage = error.responseJSON.message;
+                } else if (error.responseText) {
+                    errorMessage = error.responseText;
+                }
+                showNotification(errorMessage, 'danger');
+            }
+        });
     }
 
     function validateDates(e) {
@@ -263,6 +437,42 @@
         return /<(?!\s*\/?\s*(?:area|br|col|embed|hr|img|p|input|link|meta|param)\b)[^>]+>/.test(text);
     }
 
+    function increaseViewCount(feedId) {
+        const token = localStorage.getItem('jwtToken');
+        $.ajax({
+            url: `/api/statistics/${feedId}`,
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            type: 'POST',
+            success: function () {
+                console.log('View count increased for feed:', feedId);
+            },
+            error: function (error) {
+                console.error('Error increasing view count:', error);
+            }
+        });
+    }
+
+    function refreshViewCount(feedId) {
+        const token = localStorage.getItem('jwtToken');
+        return $.ajax({
+            url: `/api/statistics/${feedId}`,
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            type: 'GET',
+            success: function (data) {
+                console.log('ViewCount from the server: ' + data);
+                return data;
+            },
+            error: function (error) {
+                console.error('Error getting view count:', error);
+                return 0;
+            }
+        });
+    }
+
     // NOTE: Content of the button is 'Filter' by default and 'Collapse' when toggled to avoid confusion.
     $('#filter-button').click(function () {
         $('#filter-controls').toggle();
@@ -286,6 +496,41 @@
         $('#modal-image').attr('src', '');
     });
 
-    updateFilter();
-    fetchFeeds(currentPage);
+    $('#register-button').click(function () {
+        // NOTE: Show the other button to be able to switch and to avoid confusion.
+        $('#login-button').show();
+        $('#register-button').hide();
+        $('#register-controls').show();
+        $('#login-controls').hide();
+        // NOTE: Clear the login form when switching to increase security.
+        $('#login-form')[0].reset();
+    });
+
+    $('#login-button').click(function () {
+        $('#register-button').show();
+        $('#login-button').hide();
+        $('#login-controls').show();
+        $('#register-controls').hide();
+        $('#register-form')[0].reset();
+    });
+
+    $('#logout-button').click(function () {
+        localStorage.removeItem('jwtToken');
+        location.reload();
+    });
+
+    function showNotification(message, type) {
+        const container = $('#notification-container');
+        container.html(`
+             <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                ${message}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            `);
+        container.show();
+    }
+
+    loadPage();
 });

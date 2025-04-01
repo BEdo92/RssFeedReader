@@ -19,4 +19,5 @@ public class News
     public string? ImageUrl { get; set; }
     public string? Language { get; set; }
     public DateTime? LastUpdatedTime { get; set; }
+    public Statistics? Statistics { get; set; }
 }

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using RssFeedReader.Data;
+using RssFeedReader.Extensions;
 using RssFeedReader.Interfaces;
 using RssFeedReader.Middleware;
 using RssFeedReader.Repositories;
@@ -7,6 +8,8 @@ using RssFeedReader.Services;
 
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddIdentityServices(builder.Configuration);
 
 builder.Services.AddDbContext<FeedContext>(options =>
             options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -16,6 +19,8 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddHostedService<RssFeedService>();
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+
+builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<INewsRepository, NewsRepository>();
 
 var app = builder.Build();
@@ -31,8 +36,12 @@ app.UseHttpsRedirection();
 
 app.UseMiddleware<ExceptionMiddleware>();
 
+app.UseDefaultFiles();
 app.UseStaticFiles();
 
+app.UseCors();
+
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

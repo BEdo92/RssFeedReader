@@ -11,6 +11,7 @@ public class RssFeedService : BackgroundService
     private readonly HttpClient httpClient;
     private readonly IServiceScopeFactory scopeFactory;
     private readonly ILogger<RssFeedService> logger;
+    private const int FETCHING_INTERVAL = 5;
 
     public RssFeedService(IServiceScopeFactory scopeFactory, ILogger<RssFeedService> logger)
     {
@@ -27,6 +28,8 @@ public class RssFeedService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        await InitialLoad(stoppingToken);
+
         while (!stoppingToken.IsCancellationRequested)
         {
             try
@@ -42,47 +45,72 @@ public class RssFeedService : BackgroundService
                     HttpResponseMessage response;
                     try
                     {
-                        if (!await dbContext.News.AnyAsync(stoppingToken))
-                        {
-                            var request = new HttpRequestMessage(HttpMethod.Get, feedSource.Url);
-                            // NOTE: This is not the best way to handle the If-Modified-Since header, as RSS Servers may not support
-                            // it or they may use the date of the modification of the XML file, not the date of the last news news.
-                            request.Headers.IfModifiedSince = DateTime.Now.AddDays(-7).ToUniversalTime();
-                            response = await httpClient.SendAsync(request, stoppingToken);
+                        response = await httpClient.GetAsync(feedSource.Url, stoppingToken);
+                        response.EnsureSuccessStatusCode();
 
-                            if (response.StatusCode == System.Net.HttpStatusCode.NotModified)
-                            {
-                                logger.LogInformation("No new feeds found for {FeedSourceName}.", feedSource.Name);
-                                continue;
-                            }
-
-                            response.EnsureSuccessStatusCode();
-
-                            await ProcessFeedAsync(dbContext, feedSource, response, stoppingToken);
-                        }
-                        else
-                        {
-                            response = await httpClient.GetAsync(feedSource.Url, stoppingToken);
-                        }
+                        using Stream stream = await response.Content.ReadAsStreamAsync(stoppingToken);
+                        await ProcessFeedAsync(dbContext, feedSource, stream, stoppingToken);
                     }
                     catch (Exception e)
                     {
-                        logger.LogError("Error while sending the request for feed source: {feedSource}.", feedSource);
+                        logger.LogError("Error while sending the request for feed source: {feedSource}. {e}", feedSource, e);
                     }
                 }
             }
             catch (Exception ex)
             {
+                // NOTE: Some RSS feeds fail sporadically. They overall work, but sometimes fail for some reason.
                 logger.LogError(ex, "Error occurred while fetching and processing RSS feeds at {hour}:{minute}.", DateTime.Now.Hour, DateTime.Now.Minute);
             }
 
-            await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+            await Task.Delay(TimeSpan.FromMinutes(FETCHING_INTERVAL), stoppingToken);
         }
     }
 
-    private async Task ProcessFeedAsync(FeedContext dbContext, FeedSource feedSource, HttpResponseMessage response, CancellationToken stoppingToken)
+    private async Task InitialLoad(CancellationToken stoppingToken)
     {
-        using (var stream = await response.Content.ReadAsStreamAsync(stoppingToken))
+        try
+        {
+            using IServiceScope scope = scopeFactory.CreateScope();
+            FeedContext dbContext = scope.ServiceProvider.GetRequiredService<FeedContext>();
+            List<FeedSource> feedSources = await dbContext.FeedSources.ToListAsync(stoppingToken);
+
+            foreach (FeedSource? feedSource in feedSources)
+            {
+                HttpResponseMessage response;
+                try
+                {
+                    var request = new HttpRequestMessage(HttpMethod.Get, feedSource.Url);
+                    // NOTE: This is not the best way to handle the If-Modified-Since header, as RSS Servers may not support
+                    // it or they may use the date of the modification of the XML file, not the date of the last news news.
+                    request.Headers.IfModifiedSince = DateTime.Now.AddDays(-7).ToUniversalTime();
+                    response = await httpClient.SendAsync(request, stoppingToken);
+
+                    if (response.StatusCode == System.Net.HttpStatusCode.NotModified)
+                    {
+                        logger.LogInformation("No new feeds found for {FeedSourceName}.", feedSource.Name);
+                        continue;
+                    }
+
+                    response.EnsureSuccessStatusCode();
+
+                    using Stream stream = await response.Content.ReadAsStreamAsync(stoppingToken);
+                    await ProcessFeedAsync(dbContext, feedSource, stream, stoppingToken);
+                }
+                catch (Exception)
+                {
+                    logger.LogError("Error occurred while processing feed: {feedSource} durint initial load.", feedSource);
+                }
+            }
+        }
+        catch (Exception)
+        {
+            logger.LogError("Error occurred while fetching and processing RSS feeds during the initial load.");
+        }
+    }
+
+    private async Task ProcessFeedAsync(FeedContext dbContext, FeedSource feedSource, Stream stream, CancellationToken stoppingToken)
+    {
         using (XmlReader reader = XmlReader.Create(stream))
         {
             SyndicationFeed feed = SyndicationFeed.Load(reader);
@@ -112,7 +140,7 @@ public class RssFeedService : BackgroundService
                     ImageUrl = feedItem.Links.FirstOrDefault(l => l.MediaType == "image/jpeg" || l.MediaType == "image/png")?.Uri.ToString(),
                 });
 
-                logger.LogDebug("New article added: {Title}", feedItem.Title.Text);
+                logger.LogInformation("New article added: {Title}", feedItem.Title.Text);
             }
         }
 

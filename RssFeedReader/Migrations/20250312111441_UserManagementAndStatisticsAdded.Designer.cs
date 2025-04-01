@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RssFeedReader.Data;
 
@@ -11,9 +12,11 @@ using RssFeedReader.Data;
 namespace RssFeedReader.Migrations
 {
     [DbContext(typeof(FeedContext))]
-    partial class FeedContextModelSnapshot : ModelSnapshot
+    [Migration("20250312111441_UserManagementAndStatisticsAdded")]
+    partial class UserManagementAndStatisticsAdded
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -176,8 +179,7 @@ namespace RssFeedReader.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("NewsId")
-                        .IsUnique();
+                    b.HasIndex("NewsId");
 
                     b.ToTable("Statistics");
                 });
@@ -196,17 +198,12 @@ namespace RssFeedReader.Migrations
             modelBuilder.Entity("RssFeedReader.Models.Statistics", b =>
                 {
                     b.HasOne("RssFeedReader.Models.News", "News")
-                        .WithOne("Statistics")
-                        .HasForeignKey("RssFeedReader.Models.Statistics", "NewsId")
+                        .WithMany()
+                        .HasForeignKey("NewsId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("News");
-                });
-
-            modelBuilder.Entity("RssFeedReader.Models.News", b =>
-                {
-                    b.Navigation("Statistics");
                 });
 #pragma warning restore 612, 618
         }
